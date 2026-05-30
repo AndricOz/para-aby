@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Para mi hermana 🌟</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #020818;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'Nunito', sans-serif;
+    cursor: crosshair;
+    user-select: none;
+  }
+
+  canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+  }
+
+  #ui {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 2rem;
+  }
+
+  .header {
+    text-align: center;
+    animation: fadeDown 1.8s ease forwards;
+    opacity: 0;
+  }
+
+  .header .sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #7c9cbf;
+    margin-bottom: 0.5rem;
+    font-weight: 300;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    color: #fff;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 40px rgba(180,160,255,0.6);
+  }
+
+  .header h1 span {
+    font-style: italic;
+    color: #c9b8ff;
+  }
+
+  .hint {
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+    color: #4a6080;
+    letter-spacing: 0.15em;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  /* 17/05/2026 */
+  /* Importante: mensaje del click, recordar arreglarlo */
+  #message-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(10, 15, 40, 0.95);
+    border: 1px solid rgba(180, 160, 255, 0.35);
+    border-radius: 20px;
+    padding: 2rem 2.5rem;
+    text-align: center;
+    max-width: min(380px, 88vw);
+    width: 100%;
+    backdrop-filter: blur(24px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+  }
+
+  #message-box.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: all;
+  }
+
+  #message-box .star-icon {
+    font-size: 2.2rem;
+    display: block;
+    margin-bottom: 0.8rem;
+  }
+
+  #message-box .msg-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: #e8e0ff;
+    line-height: 1.65;
+    font-style: italic;
+  }
+
+  #message-box .msg-from {
+    margin-top: 1rem;
+    font-size: 0.72rem;
+    color: #5a6a8a;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  #message-box .close-btn {
+    margin-top: 1.2rem;
+    display: inline-block;
+    font-size: 0.7rem;
+    color: #6a7a9a;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    text-transform: uppercase;
+    pointer-events: all;
+    transition: color 0.2s;
+    padding: 0.4rem 1rem;
+  }
+
+  #message-box .close-btn:hover { color: #c9b8ff; }
+
+  .floating-name {
+    position: fixed;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: rgba(201, 184, 255, 0.12);
+    pointer-events: none;
+    z-index: 2;
+    animation: floatName linear forwards;
+    white-space: nowrap;
+  }
+
+  .ripple {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 5;
+    width: 0; height: 0;
+    animation: rippleOut 0.8s ease-out forwards;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50%       { opacity: 0.9; }
+  }
+  @keyframes floatName {
+    from { transform: translateY(110vh) rotate(-12deg); opacity: 0; }
+    8%   { opacity: 1; }
+    88%  { opacity: 0.7; }
+    to   { transform: translateY(-15vh) rotate(-12deg); opacity: 0; }
+  }
+  @keyframes rippleOut {
+    from { width: 0; height: 0; opacity: 0.9; margin: 0; }
+    to   { width: 160px; height: 160px; opacity: 0; margin: -80px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="ui">
+  <div class="header">
+    <div class="sub">Una galaxia hecha solo para vos</div>
+    <h1>Mi <span>hermanita</span> es la mejor 💛</h1>
+    <div class="hint">✦ toca cualquier parte de la galaxia ✦</div>
+  </div>
+</div>
+
+<div id="message-box">
+  <span class="star-icon" id="msg-icon">✦</span>
+  <div class="msg-text" id="msg-text"></div>
+  <div class="msg-from">— tu hermano 💛</div>
+  <span class="close-btn" onclick="closeMsg()">✕ cerrar</span>
+</div>
+
+// 16/05/2026
+// Frases para mostrar al clickear estrellas
+<script>
+const frases = [
+  { text: "Quisiera ser como vos... Sigue asi", icon: "🏆" },
+  { text: "Sos la más fuerte, aunque a veces no lo veas", icon: "💫" },
+  { text: "Te quiero hermanita", icon: "💛" },
+  { text: "Sos fuerte, capaz y completamente increíble", icon: "⭐" },
+  { text: "OOODA GUZANA", icon: "😂" },
+  { text: "Puedes ver este mensaje siempre que desees, ha excepcion de los días en que no quieras", icon: "🫂" },
+  { text: "Vos siempre la mejor", icon: "🌟" },
+  { text: "Gracias por siempre intentar estar conmigo en todo momento", icon: "💛" },
+  { text: "Yo siempre voy a estar a tu lado, aun cuando no lo creas", icon: "💛" },
+  { text: "Sigue así, a mi si me impresionas todos los dias", icon: "✨" },
+  { text: "Sos la Guzana mayor", icon: "🌸" },
+  { text: "Nunca te voy a dejar, aunque me odies", icon: "💫" },
+  { text: "Sos la mas fuerte", icon: "💫" },
+  { text: "Este mensaje es para ti, guzanita, para recordarte lo increíble que eres", icon: "💛" },
+  { text: "Que orgulloso el que seas mi hermana", icon: "🫂" },
+  { text: "La mejor hermana que me pudo tocar", icon: "🌙" },
+  { text: "Gracias por existir, hermanita", icon: "💛" },
+  { text: "La hermana mas hermosa del mundoooo!!!", icon: "⭐" },
+  { text: "La mas inteligente que conozco", icon: "⭐" },
+  { text: "No importa lo que los demas piensen o digan, recuerda que vos sos imparable", icon: "🪐" },
+  { text: "Todo lo que lograste te lo ganaste nunca lo olvides", icon: "🏆" },
+  { text: "Ya enserio, no se cuando te salga este mensaje, pero sigue asi, se que te aguarda algo muy grande, y hasta te envidio, quisiera que vieras lo mucho que me importas y lo mucho que te amo hermana, pero lastimosamente me cuesta mucho demostrartelo, y se que con esto no basta, pero talvez asi puedas darte una idea, enserio te voy a extrañar", icon: "🌙" },
+
+
+];
+
+const nombres = ["Aby", "Guzana", "Hermanita", "La mejor"];
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+let W, H, stars = [], nebulas = [];
+let lastFrase = -1;
+let msgOpen = false;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  initStars();
+  initNebulas();
+}
+
+function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+// 22/04/2026
+// Aqui voy a poner las nebulas, aun tengo que ver como las hago
+function initNebulas() {
+  nebulas = [];
+  for (let i = 0; i < 6; i++) {
+    nebulas.push({
+      x: randBetween(0.1, 0.9) * W,
+      y: randBetween(0.1, 0.9) * H,
+      r: randBetween(150, 320),
+      hue: [240, 260, 200, 280, 220, 250][i],
+      alpha: randBetween(0.05, 0.11),
+    });
+  }
+}
+
+// 15/05/2026
+// Tengo que buscar videos para las estrellas
+function initStars() {
+  stars = [];
+  const count = Math.min(Math.floor(W * H / 3200), 320);
+  for (let i = 0; i < count; i++) {
+    const roll = Math.random();
+    const size = roll < 0.03 ? randBetween(3.5, 6)
+               : roll < 0.12 ? randBetween(2, 3.5)
+               : randBetween(0.6, 1.8);
+    const hues = [220, 200, 260, 280, 50, 180, 300];
+    stars.push({
+      x: randBetween(0, W),
+      y: randBetween(0, H),
+      r: size,
+      speed: randBetween(0.006, 0.035),
+      phase: randBetween(0, Math.PI * 2),
+      hue: hues[Math.floor(Math.random() * hues.length)],
+      sat: Math.random() < 0.35 ? 80 : 0,
+      special: size > 2,
+    });
+  }
+}
+
+let t = 0;
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // 20/05/2026
+  // Este va a ser el fondo
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.85);
+  grad.addColorStop(0, '#070e28');
+  grad.addColorStop(1, '#020818');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+    // 04/05/2026
+  // Continuacion para hacer las nebulas
+  for (const n of nebulas) {
+    const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+    g.addColorStop(0, `hsla(${n.hue},70%,55%,${n.alpha})`);
+    g.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+  }
+
+  // Las estrellas con efecto de parpadeo
+  for (const s of stars) {
+    const blink = 0.5 + 0.5 * Math.sin(t * s.speed * 60 + s.phase);
+    const alpha = s.special ? 0.65 + 0.35 * blink : 0.35 + 0.65 * blink;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${s.hue},${s.sat}%,95%,${alpha})`;
+    ctx.fill();
+
+    //29/04/2026
+        // Cruz de luz en estrellas especiales
+    if (s.special) {
+      const len = s.r * 4.5 * blink;
+      ctx.strokeStyle = `hsla(${s.hue},60%,90%,${alpha * 0.45})`;
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(s.x - len, s.y); ctx.lineTo(s.x + len, s.y);
+      ctx.moveTo(s.x, s.y - len); ctx.lineTo(s.x, s.y + len);
+      ctx.stroke();
+    }
+  }
+
+  t += 0.016;
+  requestAnimationFrame(draw);
+}
+
+// 20/05/2026
+// Recordatorio: Hay un video de un pelon que esplica perfecto como hacer los nombres flotantes, tengo que buscarlo
+function spawnName() {
+  const el = document.createElement('div');
+  el.className = 'floating-name';
+  el.textContent = nombres[Math.floor(Math.random() * nombres.length)];
+  el.style.left = randBetween(3, 65) + 'vw';
+  el.style.fontSize = randBetween(2.5, 5.5) + 'rem';
+  const dur = randBetween(20, 35);
+  el.style.animationDuration = dur + 's';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), dur * 1000 + 500);
+}
+
+setInterval(spawnName, 7000);
+setTimeout(spawnName, 1500);
+setTimeout(spawnName, 5000);
+
+function showFrase(x, y) {
+  let idx;
+  do { idx = Math.floor(Math.random() * frases.length); }
+  while (idx === lastFrase && frases.length > 1);
+  lastFrase = idx;
+  const f = frases[idx];
+  document.getElementById('msg-icon').textContent = f.icon;
+  document.getElementById('msg-text').textContent = f.text;
+  document.getElementById('message-box').classList.add('visible');
+  msgOpen = true;
+  spawnRipple(x, y);
+}
+
+function closeMsg() {
+  document.getElementById('message-box').classList.remove('visible');
+  msgOpen = false;
+}
+
+function spawnRipple(x, y) {
+  const el = document.createElement('div');
+  el.className = 'ripple';
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  el.style.border = '1.5px solid rgba(180,160,255,0.7)';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// 21/05/2026
+// CUALQUIER click en la galaxia muestra un mensaje, PERO NO JALAAAA
+// 22/05/2026
+// Arreglado el tema del click, ahora muestra un mensaje cada vez que se hace click
+canvas.addEventListener('click', e => {
+  if (msgOpen) { closeMsg(); return; }
+  showFrase(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  if (msgOpen) { closeMsg(); return; }
+  const t0 = e.changedTouches[0];
+  showFrase(t0.clientX, t0.clientY);
+}, { passive: false });
+
+document.getElementById('message-box').addEventListener('click', e => e.stopPropagation());
+
+window.addEventListener('resize', resize);
+resize();
+draw();
+</script>
+</body>
+</html>
