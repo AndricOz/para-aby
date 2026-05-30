@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Para Aby 💛</title>
+  <meta name="description" content="Una galaxia hecha solo para vos 💛">
+  <meta property="og:title" content="Para Aby 💛">
+  <meta property="og:description" content="Una galaxia hecha solo para vos 💛">
+  <style>
+    html,body{margin:0;height:100%;background:#000;overflow:hidden}
+    #galaxy-canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+    .pill{position:fixed;top:10px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:999px;
+          background:rgba(255,255,255,.08);border:1px solid rgba(100,180,255,.25);color:#cceeff;
+          font:12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial;white-space:nowrap;}
+    .error{position:fixed;inset:auto 10px 20px 10px;background:#001526;color:#d9f0ff;border:1px solid #4ab0ff;
+           border-radius:10px;padding:10px;font:12px system-ui;display:none;}
+    #message-box{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.85);
+      background:rgba(5,15,40,0.96);border:1px solid rgba(80,180,255,0.35);border-radius:20px;
+      padding:2rem 2.2rem;text-align:center;max-width:min(380px,88vw);width:100%;
+      backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+      opacity:0;pointer-events:none;transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);z-index:200;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial;}
+    #message-box.visible{opacity:1;transform:translate(-50%,-50%) scale(1);pointer-events:all;}
+    #message-box .ico{font-size:2rem;display:block;margin-bottom:0.7rem;}
+    #message-box .txt{font-size:1.05rem;color:#ddf0ff;line-height:1.7;font-style:italic;}
+    #message-box .from{margin-top:0.9rem;font-size:0.68rem;color:#3a6a8a;letter-spacing:0.22em;text-transform:uppercase;}
+    #message-box .cerrar{display:inline-block;margin-top:1rem;font-size:0.68rem;color:#3a6a8a;
+      letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;pointer-events:all;
+      padding:0.3rem 0.8rem;transition:color 0.2s;}
+    #message-box .cerrar:hover{color:#88ccff;}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+<canvas id="galaxy-canvas"></canvas>
+<div class="pill">Mi hermanita es la mejor 💛</div>
+<div id="err" class="error"></div>
+<canvas id="fx" style="position:fixed;inset:0;pointer-events:none;"></canvas>
+
+<div id="message-box">
+  <span class="ico" id="msg-ico">✦</span>
+  <div class="txt" id="msg-txt"></div>
+  <div class="from">— tu hermano 💛</div>
+  <span class="cerrar" id="msg-cerrar">✕ cerrar</span>
+</div>
+
+<script>
+(function(){
+const err = document.getElementById('err');
+function showError(msg){ err.textContent = msg; err.style.display='block'; }
+
+// 30/04/2026: agregué un mensaje de error si algo sale mal, para que puedas saberlo en vez de quedarte con
+// ====== WEBGL CHECK ======
+try {
+  const test = document.createElement('canvas').getContext('webgl') || document.createElement('canvas').getContext('experimental-webgl');
+  if(!test) throw new Error('no webgl');
+} catch(e) { showError('WebGL parece desactivado. Probá con Chrome o Firefox.'); return; }
+
+try {
+  // 26/05/2026: agregué un mensaje de error si algo sale mal, para que puedas saberlo en vez de quedarte
+// ====== SETUP ======
+const canvas = document.getElementById('galaxy-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 2000);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.dampingFactor = 0.06;
+controls.minDistance = 10; controls.maxDistance = 220;
+controls.target.set(0,0,0);
+
+function setCam(){
+  const w = window.innerWidth, h = window.innerHeight;
+  const isMobile = w < 768 || w < h;
+  camera.fov = isMobile ? 90 : 75;
+  camera.position.set(0, isMobile ? 26 : 22, isMobile ? 110 : 75);
+  camera.updateProjectionMatrix(); controls.update();
+} setCam();
+
+window.addEventListener('resize', ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// 26/04/2026: cambié el fondo de estrellas a tonos azules, para que combine mejor con el resto de la galaxia, espero que te guste más así :D
+// ====== FONDO DE ESTRELLAS — tonos azules ======
+function makePrettyStarTexture(size=1024, count=2600){
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d');
+  const r = size/2;
+  const bg = g.createRadialGradient(r,r,r*0.2, r,r,r);
+  bg.addColorStop(0,'#000a18'); bg.addColorStop(1,'#000000');
+  g.fillStyle = bg; g.fillRect(0,0,size,size);
+  for(let i=0;i<count;i++){
+    const x = Math.random()*size, y = Math.random()*size;
+    const base = Math.random()*0.7+0.3;
+    const glow = g.createRadialGradient(x,y,0, x,y, Math.random()*2.2+1.6);
+    const hp = Math.random();
+    // azules, celestes, blancos
+    let colOuter = hp < 0.4
+      ? 'rgba(100,180,255,'+(0.14*base)+')'   // celeste
+      : hp < 0.7
+      ? 'rgba(150,220,255,'+(0.12*base)+')'   // azul claro
+      : 'rgba(200,230,255,'+(0.10*base)+')';  // blanco azulado
+    glow.addColorStop(0,'rgba(255,255,255,'+(0.7*base)+')');
+    glow.addColorStop(1, colOuter);
+    g.fillStyle = glow; g.beginPath(); g.arc(x,y,Math.random()*1.2+0.6,0,Math.PI*2); g.fill();
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+const bgGeo = new THREE.SphereGeometry(600, 64, 64);
+const starTex = makePrettyStarTexture(1024, 2600);
+starTex.wrapS = starTex.wrapT = THREE.RepeatWrapping;
+const bgMesh = new THREE.Mesh(bgGeo, new THREE.MeshBasicMaterial({ map:starTex, side:THREE.BackSide, transparent:false, opacity:0.85 }));
+scene.add(bgMesh);
+// 13/05/2026: agregué un poco de movimiento a las estrellas de fondo, para que se sienta más viva la galaxia, espero que te guste más así :D
+// ====== FRASES — exactamente las tuyas ======
+const phrases = [
+  "Quisiera ser como vos... Sigue asi",
+  "Sos la más fuerte, aunque a veces no lo veas",
+  "Te quiero hermanita 💛",
+  "Sos fuerte, capaz y completamente increíble ⭐",
+  "OOODA GUZANA 😂",
+  "Puedes ver este mensaje siempre que desees, ha excepcion de los días en que no quieras",
+  "Vos siempre la mejor 🌟",
+  "Gracias por siempre intentar estar conmigo en todo momento",
+  "Yo siempre voy a estar a tu lado, aun cuando no lo creas 💛",
+  "Sigue así, a mi si me impresionas todos los dias ✨",
+  "Sos la Guzana mayor 🌸",
+  "Nunca te voy a dejar, aunque me odies 💫",
+  "Sos la mas fuerte 💫",
+  "Este mensaje es para ti, guzanita, para recordarte lo increíble que eres 💛",
+  "Que orgulloso el que seas mi hermana 🫂",
+  "La mejor hermana que me pudo tocar 🌙",
+  "Gracias por existir, hermanita 💛",
+  "La hermana mas hermosa del mundoooo!!! ⭐",
+  "La mas inteligente que conozco ⭐",
+  "No importa lo que los demas piensen o digan, recuerda que vos sos imparable 🪐",
+  "Todo lo que lograste te lo ganaste nunca lo olvides 🏆",
+  "La mas capaz 💫",
+  "La mas genial que conozco 💫",
+  "La mas habilidosa que conozco 🌟",
+  "La mas bella del universo 💛",
+];
+
+// 20/05/2026: agregué más frases, y también un poco de movimiento a las frases para que se sienta más viva la galaxia, espero que te guste más así :D
+// ====== GALAXIA ======
+const galaxy = new THREE.Group(); scene.add(galaxy);
+const phraseCount = Math.max(phrases.length * 6, 180);
+const arms = 5, radius = 82, maxH = 22;
+
+function makeTextTexture(text, size=44){
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 128;
+  const g = c.getContext('2d'); g.clearRect(0,0,c.width,c.height);
+  g.font = '800 '+size+'px -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  // 16/05/2026: cambié el color de la sombra a un tono azul, para que combine mejor con el fondo y el resto de la galaxia, espero que te guste más así :D
+  // sombra azul en vez de morada
+  g.shadowColor = 'rgba(80,180,255,0.95)'; g.shadowBlur = 24;
+  g.fillStyle = 'rgba(220,240,255,0.98)';
+  g.fillText(text, c.width/2, c.height/2);
+  return new THREE.CanvasTexture(c);
+}
+
+for(let i=0; i<phraseCount; i++){
+  const text = phrases[i % phrases.length];
+  const tex = makeTextTexture(text, 44);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthWrite:false }));
+  spr.isPhrase = true;
+  const perArm = phraseCount/arms;
+  const ang = (i % perArm) * (Math.PI*2/perArm);
+  const armAng = Math.floor(i/perArm) * (Math.PI*2/arms);
+  const dist = Math.pow(i/phraseCount, 0.72) * radius;
+  const thickness = Math.pow(1-(dist/radius), 2);
+  const x = Math.cos(ang+armAng)*dist, z = Math.sin(ang+armAng)*dist;
+  const y = (Math.random()-0.5)*maxH*thickness*0.9;
+  spr.position.set(x,y,z); spr.scale.set(20,2.6,1); galaxy.add(spr);
+}
+// 13/05/2026: agregué un poco de movimiento a las frases, para que se sienta más viva la galaxia, espero que te guste más así :D
+// Estrellas de la galaxia
+const starCount = 8000, geom = new THREE.BufferGeometry(), pos = new Float32Array(starCount*3);
+for(let i=0;i<starCount;i++){
+  const ang = Math.random()*Math.PI*2, dist = Math.random()*radius*1.15;
+  const y = (Math.random()-0.5)*36*Math.pow(1-Math.min(dist,radius)/radius, 1.5);
+  pos[i*3] = Math.cos(ang)*dist; pos[i*3+1] = y; pos[i*3+2] = Math.sin(ang)*dist;
+}
+geom.setAttribute('position', new THREE.BufferAttribute(pos,3));
+// 29/04/2026: cambié el color de las partículas a un tono azulado, para que combine mejor con el fondo y el resto de la galaxia, espero que te guste más así :D
+// color azulado para las partículas
+galaxy.add(new THREE.Points(geom, new THREE.PointsMaterial({ color:0x88ccff, size:0.28, transparent:true, opacity:0.65, blending:THREE.AdditiveBlending })));
+
+// 12/05/2026: agregué un anillo fotónico azul alrededor del agujero
+// Agujero negro central
+const coreR = 12;
+const coreCvs = document.createElement('canvas'); coreCvs.width = coreCvs.height = 256;
+const cg = coreCvs.getContext('2d');
+const grd = cg.createRadialGradient(128,128,10, 128,128,128);
+grd.addColorStop(0,'#000820'); grd.addColorStop(0.6,'#000510'); grd.addColorStop(1,'#000');
+cg.fillStyle=grd; cg.arc(128,128,128,0,Math.PI*2); cg.fill();
+const core = new THREE.Mesh(new THREE.SphereGeometry(coreR,64,64), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(coreCvs) }));
+core.renderOrder=1; scene.add(core);
+
+// 11/05/2026
+// Anillo fotónico — azul
+const photonRing = new THREE.Mesh(
+  new THREE.RingGeometry(coreR*1.05, coreR*1.18, 128),
+  new THREE.MeshBasicMaterial({ color:0x44aaff, transparent:true, opacity:0.95, side:THREE.DoubleSide })
+);
+photonRing.rotation.x = -Math.PI/2; photonRing.renderOrder=0.5; scene.add(photonRing);
+
+// 08/05/2026 Hay un turorial de youtube de un pelon, que explica como hacer esto, verlo mas tarde, pero me parecio que el efecto de halo azul quedaba muy bien, asi que lo hice yo mismo, espero que te guste más así :D
+// Halo — azul
+function makeHaloTexture(size=1024, inner=0.45){
+  const c = document.createElement('canvas'); c.width=c.height=size;
+  const g = c.getContext('2d'); const r = size/2;
+  const grd = g.createRadialGradient(r,r,r*inner, r,r,r);
+  grd.addColorStop(0.0,'rgba(100,200,255,0.40)');
+  grd.addColorStop(0.35,'rgba(80,160,255,0.30)');
+  grd.addColorStop(0.7,'rgba(50,120,255,0.20)');
+  grd.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=grd; g.fillRect(0,0,size,size);
+  return new THREE.CanvasTexture(c);
+}
+const haloPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(320,320),
+  new THREE.MeshBasicMaterial({ map:makeHaloTexture(), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:0.9 })
+);
+haloPlane.rotation.x=-Math.PI/2; haloPlane.renderOrder=0.2; scene.add(haloPlane);
+
+// 08/05/2026: agregué un poco de movimiento a las estrellas de fondo, para que se sienta más viva la galaxia, espero que te guste más así :D
+// ====== ANIMACIÓN ======
+let tw = 0;
+function animate(){
+  requestAnimationFrame(animate);
+  const t = performance.now()*0.001;
+  tw = (tw+0.0003)%1;
+  starTex.offset.set(tw,0);
+  galaxy.rotation.y = t*0.05;
+  core.rotation.y = t*0.12;
+  photonRing.rotation.z = t*0.18;
+  haloPlane.rotation.z = t*0.02;
+  controls.update();
+  renderer.render(scene,camera);
+} animate();
+
+// 07/05/2026: agregué un efecto de corazones al hacer doble tap o doble click, con colores más azules y celestes, espero que te guste más así :D
+// ====== CORAZONES — doble tap ======
+const fx = document.getElementById('fx');
+const ctx2 = fx.getContext('2d');
+function resizeFx(){
+  fx.width  = Math.floor(innerWidth  * Math.min(2,window.devicePixelRatio||1));
+  fx.height = Math.floor(innerHeight * Math.min(2,window.devicePixelRatio||1));
+  fx.style.width  = innerWidth+'px';
+  fx.style.height = innerHeight+'px';
+} addEventListener('resize',resizeFx); resizeFx();
+const DPR = Math.min(2,window.devicePixelRatio||1);
+const hearts=[];
+function spawnHearts(x,y,n=20){
+  x*=DPR; y*=DPR;
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2;
+    hearts.push({x,y,vx:Math.cos(a)*(0.6+Math.random()*0.8),vy:-(0.8+Math.random()*1.2),life:1,size:10+Math.random()*16});
+  }
+}
+function drawHeart(x,y,size){
+  const s=size; ctx2.save(); ctx2.translate(x,y);
+  ctx2.beginPath(); ctx2.moveTo(0,-0.25*s);
+  ctx2.bezierCurveTo(.5*s,-.9*s,1.4*s,-.1*s,0,.9*s);
+  ctx2.bezierCurveTo(-1.4*s,-.1*s,-.5*s,-.9*s,0,-.25*s);
+  const g=ctx2.createRadialGradient(0,0,0,0,0,s);
+  // 04/05/2026: cambié los colores del degradado para que sean más azules y celestes, y menos rosas, espero que te gusten más así :D
+  // corazones azules/celestes
+  g.addColorStop(0,'rgba(150,210,255,.95)'); g.addColorStop(1,'rgba(50,130,255,0)');
+  ctx2.fillStyle=g; ctx2.fill(); ctx2.restore();
+}
+let lastTap=0;
+addEventListener('click',(e)=>{ const now=performance.now(); if(now-lastTap<320) spawnHearts(e.clientX,e.clientY,20); lastTap=now; },{passive:true});
+addEventListener('touchend',(e)=>{ const now=performance.now(); const t0=e.changedTouches&&e.changedTouches[0]; if(now-lastTap<320&&t0) spawnHearts(t0.clientX,t0.clientY,20); lastTap=now; },{passive:true});
+
+function loopFx(){
+  ctx2.clearRect(0,0,fx.width,fx.height);
+  for(let i=hearts.length-1;i>=0;i--){ const h=hearts[i]; h.x+=h.vx; h.y+=h.vy; h.vy-=0.02; h.life-=0.015;
+    ctx2.globalAlpha=Math.max(0,h.life); drawHeart(h.x,h.y,h.size); ctx2.globalAlpha=1; if(h.life<=0) hearts.splice(i,1);
+  }
+  requestAnimationFrame(loopFx);
+} loopFx();
+
+// 01/05/2026: agregué más frases, y un popup al tocar el core con todas las frases (y algunas extras), para que puedas verlas cuando quieras, incluso esas que no salen tan seguido. Espero que te guste, guzanita :D
+// ====== POPUP DE FRASES al tocar el core ======
+const msgBox    = document.getElementById('message-box');
+const msgIco    = document.getElementById('msg-ico');
+const msgTxt    = document.getElementById('msg-txt');
+const msgCerrar = document.getElementById('msg-cerrar');
+let msgOpen = false, lastFraseIdx = -1;
+
+const frasesPopup = [
+  { text: "Quisiera ser como vos... Sigue asi", icon: "🏆" },
+  { text: "Sos la más fuerte, aunque a veces no lo veas", icon: "💫" },
+  { text: "Te quiero hermanita", icon: "💛" },
+  { text: "La mejor chef, sin duda mas de 5 estrellas", icon: "✨" },
+  { text: "Sos fuerte, capaz y completamente increíble", icon: "⭐" },
+  { text: "Como estas hoy?", icon: "💫" },
+  { text: "Reeeespira y exhala cuando te sientas abrumada", icon: "🌸" },
+  { text: "OOODA GUZANA", icon: "😂" },
+  { text: "Puedes ver este mensaje siempre que desees, ha excepcion de los días en que no quieras", icon: "🫂" },
+  { text: "Vos siempre la mejor", icon: "🌟" },
+  { text: "TU NO ERES FEA 😠, ERES LA MAS BELLA", icon: "💛" },
+  { text: "Gracias por siempre intentar estar conmigo en todo momento", icon: "💛" },
+  { text: "La mas habilidosa que conozco", icon: "🌟" },
+  { text: "Yo siempre voy a estar a tu lado, aun cuando no lo creas", icon: "💛" },
+  { text: "Sigue así, a mi si me impresionas todos los dias", icon: "✨" },
+  { text: "Sos la Guzana mayor", icon: "🌸" },
+  { text: "Construi este lugar para ti, guzanita :)", icon: "🌸" },
+  { text: "TU NO ERES UNA INUTIL, ERES UNA GENIA", icon: "💛" },
+  { text: "Nunca te voy a dejar, aunque me odies", icon: "💫" },
+  { text: "Sos la mas fuerte", icon: "💫" },
+  { text: "Este mensaje es para ti, guzanita, para recordarte lo increíble que eres", icon: "💛" },
+  { text: "Que orgulloso el que seas mi hermana", icon: "🫂" },
+  { text: "ANIMOS ABY!!!", icon: "💛" },
+  { text: "La mejor hermana que me pudo tocar", icon: "🌙" },
+  { text: "Espero que estés teniendo un día maravilloso, y si no, recuerda que siempre puede mejorar", icon: "✨" },
+  { text: "Gracias por existir, hermanita", icon: "💛" },
+  { text: "La hermana mas hermosa del mundoooo!!!", icon: "⭐" },
+  { text: "La mas inteligente que conozco", icon: "⭐" },
+  { text: "No importa lo que los demas piensen o digan, recuerda que vos sos imparable", icon: "🪐" },
+  { text: "Todo lo que lograste te lo ganaste nunca lo olvides", icon: "🏆" },
+  { text: "Sos la mas capaz", icon: "💫" },
+  { text: "La mas genial que conozco", icon: "💫" },
+  { text: "Ya enserio, no se cuando te salga este mensaje, pero sigue asi, se que te aguarda algo muy grande, y hasta te envidio, quisiera que vieras lo mucho que me importas y lo mucho que te amo hermana, pero lastimosamente me cuesta mucho demostrartelo, y se que con esto no basta, pero talvez asi puedas darte una idea, enserio te voy a extrañar", icon: "🌙" },
+];
+
+function openMsg(){
+  let idx; do { idx = Math.floor(Math.random()*frasesPopup.length); } while(idx===lastFraseIdx && frasesPopup.length>1);
+  lastFraseIdx = idx;
+  const f = frasesPopup[idx];
+  msgIco.textContent = f.icon;
+  msgTxt.textContent = f.text;
+  msgBox.classList.add('visible');
+  msgOpen = true;
+}
+function closeMsg(){ msgBox.classList.remove('visible'); msgOpen = false; }
+msgCerrar.addEventListener('click', e => { e.stopPropagation(); closeMsg(); });
+msgBox.addEventListener('click', e => e.stopPropagation());
+
+const raycaster = new THREE.Raycaster();
+const mouse2 = new THREE.Vector2();
+let ptrDown = null;
+
+canvas.addEventListener('pointerdown', e => { ptrDown = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('pointerup', e => {
+  if(!ptrDown) return;
+  const moved = Math.hypot(e.clientX - ptrDown.x, e.clientY - ptrDown.y);
+  ptrDown = null;
+  if(moved > 8) return;
+  if(msgOpen){ closeMsg(); return; }
+  mouse2.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+  mouse2.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse2, camera);
+  if(raycaster.intersectObject(core).length > 0) openMsg();
+});
+
+} catch(e){ showError('Error: '+e.message); console.error(e); }
+})();
+</script>
+</body>
+</html>
