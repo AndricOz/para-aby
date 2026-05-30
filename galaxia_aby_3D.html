@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Para mi hermana 🌟</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Nunito:wght@300;400;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #020818;
+    min-height: 100vh;
+    overflow: hidden;
+    font-family: 'Nunito', sans-serif;
+    cursor: grab;
+    user-select: none;
+  }
+  body.dragging { cursor: grabbing; }
+
+  canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+  }
+
+  #ui {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 2rem;
+  }
+
+  .header {
+    text-align: center;
+    animation: fadeDown 1.8s ease forwards;
+    opacity: 0;
+  }
+
+  .header .sub {
+    font-size: 0.75rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #7c9cbf;
+    margin-bottom: 0.5rem;
+    font-weight: 300;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    color: #fff;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 40px rgba(180,160,255,0.6);
+  }
+
+  .header h1 span { font-style: italic; color: #c9b8ff; }
+
+  .hint {
+    margin-top: 0.6rem;
+    font-size: 0.72rem;
+    color: #4a6080;
+    letter-spacing: 0.15em;
+    animation: pulse 3s ease-in-out infinite;
+  }
+
+  #message-box {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    background: rgba(10, 15, 40, 0.95);
+    border: 1px solid rgba(180, 160, 255, 0.35);
+    border-radius: 20px;
+    padding: 2rem 2.5rem;
+    text-align: center;
+    max-width: min(380px, 88vw);
+    width: 100%;
+    backdrop-filter: blur(24px);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+  }
+  #message-box.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: all;
+  }
+  #message-box .star-icon {
+    font-size: 2.2rem;
+    display: block;
+    margin-bottom: 0.8rem;
+  }
+  #message-box .msg-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: #e8e0ff;
+    line-height: 1.65;
+    font-style: italic;
+  }
+  #message-box .msg-from {
+    margin-top: 1rem;
+    font-size: 0.72rem;
+    color: #5a6a8a;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  #message-box .close-btn {
+    margin-top: 1.2rem;
+    display: inline-block;
+    font-size: 0.7rem;
+    color: #6a7a9a;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    text-transform: uppercase;
+    pointer-events: all;
+    transition: color 0.2s;
+    padding: 0.4rem 1rem;
+  }
+  #message-box .close-btn:hover { color: #c9b8ff; }
+
+  .floating-name {
+    position: fixed;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: rgba(201, 184, 255, 0.12);
+    pointer-events: none;
+    z-index: 2;
+    animation: floatName linear forwards;
+    white-space: nowrap;
+  }
+
+  .ripple {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 5;
+    width: 0; height: 0;
+    animation: rippleOut 0.8s ease-out forwards;
+  }
+
+  /* Tooltip de estrella */
+  #star-label {
+    position: fixed;
+    pointer-events: none;
+    z-index: 50;
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: rgba(220, 210, 255, 0.85);
+    text-shadow: 0 0 12px rgba(150,120,255,0.8);
+    white-space: nowrap;
+    transform: translate(-50%, -150%);
+    transition: opacity 0.3s;
+    opacity: 0;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.35; }
+    50%       { opacity: 0.9; }
+  }
+  @keyframes floatName {
+    from { transform: translateY(110vh) rotate(-12deg); opacity: 0; }
+    8%   { opacity: 1; }
+    88%  { opacity: 0.7; }
+    to   { transform: translateY(-15vh) rotate(-12deg); opacity: 0; }
+  }
+  @keyframes rippleOut {
+    from { width: 0; height: 0; opacity: 0.9; margin: 0; }
+    to   { width: 160px; height: 160px; opacity: 0; margin: -80px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="star-label"></div>
+
+<div id="ui">
+  <div class="header">
+    <div class="sub">Una galaxia hecha solo para vos</div>
+    <h1>Mi <span>hermanita</span> es la mejor 💛</h1>
+    <div class="hint">✦ arrastrá para navegar · pellizco/scroll para zoom · tocá las estrellas ✦</div>
+  </div>
+</div>
+
+<div id="message-box">
+  <span class="star-icon" id="msg-icon">✦</span>
+  <div class="msg-text" id="msg-text"></div>
+  <div class="msg-from">— tu hermano 💛</div>
+  <span class="close-btn" onclick="closeMsg()">✕ cerrar</span>
+</div>
+
+<script>
+// ── FRASES ORIGINALES — SIN CAMBIAR NADA ─────────────────
+const frases = [
+  { text: "Quisiera ser como vos... Sigue asi", icon: "🏆" },
+  { text: "Sos la más fuerte, aunque a veces no lo veas", icon: "💫" },
+  { text: "Te quiero hermanita", icon: "💛" },
+  { text: "Sos fuerte, capaz y completamente increíble", icon: "⭐" },
+  { text: "OOODA GUZANA", icon: "😂" },
+  { text: "Puedes ver este mensaje siempre que desees, ha excepcion de los días en que no quieras", icon: "🫂" },
+  { text: "Vos siempre la mejor", icon: "🌟" },
+  { text: "Gracias por siempre intentar estar conmigo en todo momento", icon: "💛" },
+  { text: "Yo siempre voy a estar a tu lado, aun cuando no lo creas", icon: "💛" },
+  { text: "Sigue así, a mi si me impresionas todos los dias", icon: "✨" },
+  { text: "Sos la Guzana mayor", icon: "🌸" },
+  { text: "Nunca te voy a dejar, aunque me odies", icon: "💫" },
+  { text: "Sos la mas fuerte", icon: "💫" },
+  { text: "Este mensaje es para ti, guzanita, para recordarte lo increíble que eres", icon: "💛" },
+  { text: "Que orgulloso el que seas mi hermana", icon: "🫂" },
+  { text: "La mejor hermana que me pudo tocar", icon: "🌙" },
+  { text: "Gracias por existir, hermanita", icon: "💛" },
+  { text: "La hermana mas hermosa del mundoooo!!!", icon: "⭐" },
+  { text: "La mas inteligente que conozco", icon: "⭐" },
+  { text: "No importa lo que los demas piensen o digan, recuerda que vos sos imparable", icon: "🪐" },
+  { text: "Todo lo que lograste te lo ganaste nunca lo olvides", icon: "🏆" },
+  { text: "Ya enserio, no se cuando te salga este mensaje, pero sigue asi, se que te aguarda algo muy grande, y hasta te envidio, quisiera que vieras lo mucho que me importas y lo mucho que te amo hermana, pero lastimosamente me cuesta mucho demostrartelo, y se que con esto no basta, pero talvez asi puedas darte una idea, enserio te voy a extrañar", icon: "🌙" },
+];
+
+const nombres = ["Aby", "Guzana", "Hermanita", "La mejor"];
+
+// ── CANVAS & CÁMARA ──────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const starLabel = document.getElementById('star-label');
+let W, H;
+
+// Cámara: x,y = posición en el mundo; z = zoom
+const cam = { x: 0, y: 0, z: 1 };
+const ZOOM_MIN = 0.15, ZOOM_MAX = 8;
+const WORLD = 8000; // tamaño total del universo
+
+let stars = [], nebulas = [];
+let lastFrase = -1;
+let msgOpen = false;
+let t = 0;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function randBetween(a, b) { return a + Math.random() * (b - a); }
+
+// ── MUNDO: coordenadas wx,wy en espacio del mundo ────────
+function initNebulas() {
+  nebulas = [];
+  const hues = [240, 260, 200, 280, 220, 250, 300, 180];
+  for (let i = 0; i < 18; i++) {
+    nebulas.push({
+      wx: randBetween(-WORLD/2, WORLD/2),
+      wy: randBetween(-WORLD/2, WORLD/2),
+      r:  randBetween(200, 700),
+      hue: hues[i % hues.length],
+      alpha: randBetween(0.04, 0.09),
+    });
+  }
+}
+
+function initStars() {
+  stars = [];
+  // Estrellas normales de fondo
+  const N = 1800;
+  const hues = [220, 200, 260, 280, 50, 180, 300];
+  for (let i = 0; i < N; i++) {
+    const roll = Math.random();
+    const r = roll < 0.015 ? randBetween(4, 8)
+            : roll < 0.06  ? randBetween(2, 4)
+            : roll < 0.18  ? randBetween(1, 2)
+            : randBetween(0.3, 1);
+    stars.push({
+      wx: randBetween(-WORLD/2, WORLD/2),
+      wy: randBetween(-WORLD/2, WORLD/2),
+      r,
+      hue: hues[Math.floor(Math.random() * hues.length)],
+      sat: Math.random() < 0.35 ? 80 : 0,
+      speed: randBetween(0.006, 0.04),
+      phase: randBetween(0, Math.PI * 2),
+      special: false,
+      frase: null,
+    });
+  }
+
+  // Estrellas especiales — una por frase, repartidas por el mundo
+  frases.forEach((f, i) => {
+    const angle = (i / frases.length) * Math.PI * 2 + randBetween(-0.3, 0.3);
+    const dist  = randBetween(WORLD * 0.08, WORLD * 0.42);
+    stars.push({
+      wx: Math.cos(angle) * dist + randBetween(-300, 300),
+      wy: Math.sin(angle) * dist + randBetween(-300, 300),
+      r: randBetween(5, 9),
+      hue: [260, 280, 220, 200, 50, 300, 180][i % 7],
+      sat: 80,
+      speed: randBetween(0.3, 0.8),
+      phase: randBetween(0, Math.PI * 2),
+      special: true,
+      frase: f,
+      nebR: randBetween(50, 140),
+    });
+  });
+}
+
+initNebulas();
+initStars();
+
+// ── CONVERSIONES MUNDO ↔ PANTALLA ────────────────────────
+function w2s(wx, wy) {
+  return {
+    sx: (wx - cam.x) * cam.z + W / 2,
+    sy: (wy - cam.y) * cam.z + H / 2,
+  };
+}
+function s2w(sx, sy) {
+  return {
+    wx: (sx - W / 2) / cam.z + cam.x,
+    wy: (sy - H / 2) / cam.z + cam.y,
+  };
+}
+
+// ── RENDER ───────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Fondo
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.9);
+  grad.addColorStop(0, '#070e28');
+  grad.addColorStop(1, '#020818');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Nebulas
+  for (const n of nebulas) {
+    const { sx, sy } = w2s(n.wx, n.wy);
+    const sr = n.r * cam.z;
+    if (sx + sr < -100 || sx - sr > W + 100 || sy + sr < -100 || sy - sr > H + 100) continue;
+    const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+    g.addColorStop(0, `hsla(${n.hue},70%,55%,${n.alpha})`);
+    g.addColorStop(1, 'transparent');
+    ctx.beginPath();
+    ctx.arc(sx, sy, sr, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+  }
+
+  // Estrellas
+  for (const s of stars) {
+    const { sx, sy } = w2s(s.wx, s.wy);
+    const sr = s.r * cam.z;
+    const margin = sr + (s.special ? (s.nebR || 0) * cam.z + 20 : 0);
+    if (sx + margin < 0 || sx - margin > W || sy + margin < 0 || sy - margin > H) continue;
+
+    const blink = 0.5 + 0.5 * Math.sin(t * s.speed + s.phase);
+    const alpha = s.special ? 0.65 + 0.35 * blink : 0.35 + 0.65 * blink;
+
+    // Halo de estrella especial
+    if (s.special && s.nebR) {
+      const nr = s.nebR * cam.z;
+      const hg = ctx.createRadialGradient(sx, sy, 0, sx, sy, nr);
+      hg.addColorStop(0, `hsla(${s.hue},90%,70%,${0.18 * blink})`);
+      hg.addColorStop(1, 'transparent');
+      ctx.beginPath();
+      ctx.arc(sx, sy, nr, 0, Math.PI*2);
+      ctx.fillStyle = hg;
+      ctx.fill();
+    }
+
+    // Cuerpo
+    ctx.beginPath();
+    ctx.arc(sx, sy, Math.max(0.4, sr), 0, Math.PI*2);
+    ctx.fillStyle = `hsla(${s.hue},${s.sat}%,95%,${alpha})`;
+    ctx.fill();
+
+    // Cruz de luz
+    if (s.r >= 2 || s.special) {
+      const len = Math.max(sr, 2) * (s.special ? 5 : 4) * blink;
+      ctx.strokeStyle = `hsla(${s.hue},60%,90%,${alpha * 0.45})`;
+      ctx.lineWidth = Math.max(0.3, 0.6);
+      ctx.beginPath();
+      ctx.moveTo(sx - len, sy); ctx.lineTo(sx + len, sy);
+      ctx.moveTo(sx, sy - len); ctx.lineTo(sx, sy + len);
+      ctx.stroke();
+    }
+
+    // Snippet de texto encima de la estrella especial (visible al hacer zoom)
+    if (s.special && cam.z > 0.5) {
+      const textAlpha = Math.min(1, (cam.z - 0.5) * 1.5) * alpha;
+      const snippet = s.frase.text.length > 28 ? s.frase.text.slice(0, 26) + '…' : s.frase.text;
+      ctx.save();
+      ctx.font = `italic ${Math.max(9, Math.min(14, 11 * cam.z))}px 'Playfair Display', Georgia, serif`;
+      ctx.fillStyle = `rgba(210,200,255,${textAlpha * 0.7})`;
+      ctx.textAlign = 'center';
+      ctx.fillText(snippet, sx, sy - sr * cam.z - 10);
+      ctx.restore();
+    }
+  }
+
+  t += 0.016;
+  requestAnimationFrame(draw);
+}
+draw();
+
+// ── NOMBRES FLOTANTES ────────────────────────────────────
+function spawnName() {
+  const el = document.createElement('div');
+  el.className = 'floating-name';
+  el.textContent = nombres[Math.floor(Math.random() * nombres.length)];
+  el.style.left = randBetween(3, 65) + 'vw';
+  el.style.fontSize = randBetween(2.5, 5.5) + 'rem';
+  const dur = randBetween(20, 35);
+  el.style.animationDuration = dur + 's';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), dur * 1000 + 500);
+}
+setInterval(spawnName, 7000);
+setTimeout(spawnName, 1500);
+setTimeout(spawnName, 5000);
+
+// ── POPUP DE MENSAJE ─────────────────────────────────────
+function showFrase(f) {
+  document.getElementById('msg-icon').textContent = f.icon;
+  document.getElementById('msg-text').textContent  = f.text;
+  document.getElementById('message-box').classList.add('visible');
+  msgOpen = true;
+}
+function closeMsg() {
+  document.getElementById('message-box').classList.remove('visible');
+  msgOpen = false;
+}
+document.getElementById('message-box').addEventListener('click', e => e.stopPropagation());
+
+function spawnRipple(sx, sy) {
+  const el = document.createElement('div');
+  el.className = 'ripple';
+  el.style.left = sx + 'px';
+  el.style.top  = sy + 'px';
+  el.style.border = '1.5px solid rgba(180,160,255,0.7)';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// ── DETECTAR CLICK EN ESTRELLA ESPECIAL ──────────────────
+function findSpecialStar(sx, sy) {
+  const { wx, wy } = s2w(sx, sy);
+  let best = null, bestD = 60 / cam.z; // 60px de tolerancia en pantalla
+  for (const s of stars) {
+    if (!s.special) continue;
+    const d = Math.hypot(s.wx - wx, s.wy - wy);
+    if (d < bestD) { best = s; bestD = d; }
+  }
+  return best;
+}
+
+// ── CONTROLES: PAN (drag) ────────────────────────────────
+let dragging = false;
+let dragStart = null, camStart = null;
+let velocity = { x: 0, y: 0 };
+let lastPos = null;
+let pointerMoved = false;
+
+function startDrag(x, y) {
+  dragging = true;
+  pointerMoved = false;
+  dragStart = { x, y };
+  camStart  = { x: cam.x, y: cam.y };
+  lastPos   = { x, y };
+  velocity  = { x: 0, y: 0 };
+  document.body.classList.add('dragging');
+}
+function moveDrag(x, y) {
+  if (!dragging) return;
+  const dx = x - lastPos.x, dy = y - lastPos.y;
+  if (Math.abs(x - dragStart.x) > 3 || Math.abs(y - dragStart.y) > 3) pointerMoved = true;
+  velocity.x = dx / cam.z;
+  velocity.y = dy / cam.z;
+  lastPos = { x, y };
+  cam.x = camStart.x - (x - dragStart.x) / cam.z;
+  cam.y = camStart.y - (y - dragStart.y) / cam.z;
+}
+function endDrag(x, y) {
+  dragging = false;
+  document.body.classList.remove('dragging');
+  if (!pointerMoved) {
+    handleTap(x, y);
+  }
+}
+
+// Inercia
+(function loop() {
+  if (!dragging) {
+    cam.x -= velocity.x * 0.45;
+    cam.y -= velocity.y * 0.45;
+    velocity.x *= 0.87;
+    velocity.y *= 0.87;
+  }
+  requestAnimationFrame(loop);
+})();
+
+// Mouse
+canvas.addEventListener('mousedown', e => startDrag(e.clientX, e.clientY));
+window.addEventListener('mousemove',  e => { if (dragging) moveDrag(e.clientX, e.clientY); });
+window.addEventListener('mouseup',    e => { if (dragging) endDrag(e.clientX, e.clientY); });
+
+// ── CONTROLES: ZOOM (rueda) ───────────────────────────────
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoomAt(e.clientX, e.clientY, e.deltaY < 0 ? 1.12 : 0.89);
+}, { passive: false });
+
+function zoomAt(sx, sy, factor) {
+  const before = s2w(sx, sy);
+  cam.z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, cam.z * factor));
+  const after = s2w(sx, sy);
+  cam.x += before.wx - after.wx;
+  cam.y += before.wy - after.wy;
+}
+
+// ── CONTROLES: TOUCH (pan + pinch) ───────────────────────
+let activeTouches = {};
+let pinchData = null;
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    activeTouches[t.identifier] = { x: t.clientX, y: t.clientY, ox: t.clientX, oy: t.clientY };
+  }
+  const ids = Object.keys(activeTouches);
+  if (ids.length === 1) {
+    startDrag(activeTouches[ids[0]].x, activeTouches[ids[0]].y);
+  } else if (ids.length === 2) {
+    dragging = false;
+    document.body.classList.remove('dragging');
+    const a = activeTouches[ids[0]], b = activeTouches[ids[1]];
+    pinchData = {
+      dist0: Math.hypot(b.x - a.x, b.y - a.y),
+      z0: cam.z,
+      midX: (a.x + b.x) / 2,
+      midY: (a.y + b.y) / 2,
+      camX0: cam.x, camY0: cam.y,
+    };
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    if (activeTouches[t.identifier]) {
+      activeTouches[t.identifier].x = t.clientX;
+      activeTouches[t.identifier].y = t.clientY;
+    }
+  }
+  const ids = Object.keys(activeTouches);
+  if (ids.length === 1 && dragging) {
+    moveDrag(activeTouches[ids[0]].x, activeTouches[ids[0]].y);
+  } else if (ids.length === 2 && pinchData) {
+    const a = activeTouches[ids[0]], b = activeTouches[ids[1]];
+    const dist = Math.hypot(b.x - a.x, b.y - a.y);
+    const mid  = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    const newZ = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchData.z0 * dist / pinchData.dist0));
+    const before = s2w(pinchData.midX, pinchData.midY);
+    cam.z = newZ;
+    const after = s2w(pinchData.midX, pinchData.midY);
+    cam.x += before.wx - after.wx;
+    cam.y += before.wy - after.wy;
+    // pan con dos dedos
+    cam.x -= (mid.x - pinchData.midX) / cam.z;
+    cam.y -= (mid.y - pinchData.midY) / cam.z;
+    pinchData.midX = mid.x;
+    pinchData.midY = mid.y;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  for (const t of e.changedTouches) {
+    const touch = activeTouches[t.identifier];
+    const ids = Object.keys(activeTouches);
+    if (ids.length === 1 && touch && dragging) {
+      endDrag(t.clientX, t.clientY);
+    }
+    delete activeTouches[t.identifier];
+  }
+  if (Object.keys(activeTouches).length < 2) pinchData = null;
+}, { passive: false });
+
+// ── TAP: abrir frase ─────────────────────────────────────
+function handleTap(sx, sy) {
+  if (msgOpen) { closeMsg(); return; }
+  const star = findSpecialStar(sx, sy);
+  const f = star ? star.frase : frases[Math.floor(Math.random() * frases.length)];
+  spawnRipple(sx, sy);
+  showFrase(f);
+}
+</script>
+</body>
+</html>
